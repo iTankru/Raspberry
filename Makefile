@@ -34,24 +34,29 @@ endif
 PROGRAMS = MyGateway MySensor MyMessage PiEEPROM
 GATEWAY  = PiGateway
 GATEWAY_SERIAL = PiGatewaySerial
+GATEWAY_TCP = PiGatewayTCP
 
 GATEWAY_SRCS = ${GATEWAY:=.cpp}
 GATEWAY_SERIAL_SRCS = ${GATEWAY_SERIAL:=.cpp}
+GATEWAY_TCP_SRCS = ${GATEWAY_TCP:=.cpp}
 SOURCES = ${PROGRAMS:=.cpp}
 
 GATEWAY_OBJS = ${GATEWAY:=.o}
 GATEWAY_SERIAL_OBJS = ${GATEWAY_SERIAL:=.o}
+GATEWAY_TCP_OBJS = ${GATEWAY_TCP:=.o}
 OBJS = ${PROGRAMS:=.o}
 
 GATEWAY_DEPS = ${GATEWAY:=.h}
 GATEWAY_SERIAL_DEPS = ${GATEWAY_SERIAL:=.h}
+GATEWAY_TCP_DEPS = ${GATEWAY_TCP:=.h}
+
 DEPS = ${PROGRAMS:=.h}
 
 RF24H = /usr/local/include/RF24
 CINCLUDE=-I. -I${RF24H}
 
 
-all: ${GATEWAY} ${GATEWAY_SERIAL}
+all: ${GATEWAY} ${GATEWAY_SERIAL} ${GATEWAY_TCP}
 
 %.o: %.cpp %.h ${DEPS}
 	${CC} -c -o $@ $< ${CCFLAGS} ${CINCLUDE}
@@ -62,10 +67,13 @@ ${GATEWAY}: ${OBJS} ${GATEWAY_OBJS}
 ${GATEWAY_SERIAL}: ${OBJS} ${GATEWAY_SERIAL_OBJS}
 	${CC} -o $@ ${OBJS} ${GATEWAY_SERIAL_OBJS} ${CCFLAGS} ${CINCLUDE} -lrf24-bcm -lutil
 
-clean:
-	rm -rf $(PROGRAMS) $(GATEWAY) $(GATEWAY_SERIAL) ${OBJS} $(GATEWAY_OBJS) $(GATEWAY_SERIAL_OBJS)
+${GATEWAY_TCP}: ${OBJS} ${GATEWAY_TCP_OBJS}
+	${CC} -o $@ ${OBJS} ${GATEWAY_TCP_OBJS} ${CCFLAGS} ${CINCLUDE} -lrf24-bcm -lutil
 
-install: all install-gatewayserial install-gateway install-initscripts
+clean:
+	rm -rf $(PROGRAMS) $(GATEWAY) $(GATEWAY_SERIAL) $(GATEWAY_TCP) ${OBJS} $(GATEWAY_OBJS) $(GATEWAY_SERIAL_OBJS) $(GATEWAY_TCP_OBJS)
+
+install: all install-gatewayserial install-gateway install-initscripts install-gatewaytcp
 
 install-gatewayserial: 
 	@echo "Installing ${GATEWAY_SERIAL} to ${BINDIR}"
@@ -74,33 +82,47 @@ install-gatewayserial:
 install-gateway: 
 	@echo "Installing ${GATEWAY} to ${BINDIR}"
 	@install -m 0755 ${GATEWAY} ${BINDIR}
-	
+
+install-gatewaytcp:
+	@echo "Installing ${GATEWAY_TCP} to ${BINDIR}"
+	@install -m 0755 ${GATEWAY_TCP} ${BINDIR}
+
 install-initscripts:
 	@echo "Installing initscripts to /etc/init.d"
 	@install -m 0755 initscripts/PiGatewaySerial /etc/init.d
+	@install -m 0755 initscripts/PiGatewayTCP /etc/init.d
 	@install -m 0755 initscripts/PiGateway /etc/init.d
 	@echo "Installing syslog config to /etc/rsyslog.d"
 	@install -m 0755 initscripts/30-PiGatewaySerial.conf /etc/rsyslog.d
+	@install -m 0755 initscripts/30-PiGatewayTCP.conf /etc/rsyslog.d
 	@install -m 0755 initscripts/30-PiGateway.conf  /etc/rsyslog.d
 	@service rsyslog restart
 
 enable-gw: install
 	@update-rc.d PiGateway defaults
-	
+
 enable-gwserial: install
 	@update-rc.d PiGatewaySerial defaults
-	
+
 remove-gw:
 	@update-rc.d -f PiGateway remove
-	
+
+enable-gwtcp: install
+	@update-rc.d PiGatewayTCP defaults
+
+remove-gwtcp:
+	@update-rc.d -f PiGatewayTCP remove
+
 remove-gwserial:
 	@update-rc.d -f PiGatewaySerial remove
-	
-uninstall: remove-gw remove-gwserial
+
+uninstall: remove-gw remove-gwserial remove-gwtcp
 	@echo "Stopping daemon PiGatewaySerial (ignore errors)"
 	-@service PiGatewaySerial stop
+	@echo "Stopping daemon PiGatewayTCP (ignore errors)"
+	-@service PiGatewayTCP stop
 	@echo "Stopping daemon PiGateway (ignore errors)"
 	-@service PiGateway stop
 	@echo "removing files"
-	rm ${BINDIR}/PiGatewaySerial ${BINDIR}/PiGateway /etc/init.d/PiGatewaySerial /etc/init.d/PiGateway /etc/rsyslog.d/30-PiGatewaySerial.conf /etc/rsyslog.d/30-PiGateway.conf
-	
+	rm ${BINDIR}/PiGatewaySerial ${BINDIR}/PiGateway /etc/init.d/PiGatewaySerial /etc/init.d/PiGateway /etc/rsyslog.d/30-PiGatewaySerial.conf /etc/rsyslog.d/30-PiGateway.conf ${BINDIR}/PiGatewayTCP /etc/init.d/PiGatewayTCP /etc/rsyslog.d/30-PiGatewayTCP.conf
+

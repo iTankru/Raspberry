@@ -26,6 +26,12 @@ The standard configuration will build the Serial Gateway with a tty name of
 and write. The default install location will be /usr/local/sbin. If you want to change
 that edit the variables in the head of the Makefile.
 
+##TCP Gateway
+
+The standard configuration will build the TCP Gateway with a port 0.0.0.0:5003
+The default install location will be /usr/local/sbin. If you want to change
+that edit the variables in the head of the Makefile.
+
 ###Build the Gateway
 * Clone this repository
 * Change to the Raspberry directory
